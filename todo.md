@@ -1,0 +1,22 @@
+# Project TODO
+
+- [x] Define database tables, foreign keys, indexes, and migration for 90-day challenges, daily records, LeetCode problems, web-development logs, and gym logs.
+- [x] Implement protected data procedures for creating, reading, updating, exporting, resetting, and deleting a user’s challenge data.
+- [x] Implement centralized date, score, streak, weekly-performance, and cumulative-progress calculations with automated tests.
+- [x] Create a dark, responsive dashboard shell with desktop sidebar, mobile navigation, authenticated entry state, and premium visual tokens.
+- [x] Build the challenge start experience with date validation, target configuration, and current-day calculation.
+- [x] Build daily Web Development, LeetCode, Gym, and journal interactions with validation, persistence, feedback, and future-day locking.
+- [x] Build a live cumulative performance chart, goal progress visuals, weekly performance chart, and percentage ring from persisted data.
+- [x] Build a clickable 90-day intensity calendar with per-day details and editable historical records.
+- [x] Build Analytics, dedicated tracker, journal, and Settings views, including CSV/JSON export and reset/delete confirmations.
+- [x] Add clear loading, empty, and error states, responsive behavior, accessibility affordances, and limited completion/milestone motion.
+- [x] Run type-checking, unit tests, production build, migration/schema verification, and authenticated desktop/mobile dashboard visual checks.
+- [x] Write README setup, schema, migration, deployment, and calculation documentation; package the completed folder as a ZIP.
+- [x] Add protected export procedures that return the user’s challenge data for CSV/JSON export flows.
+- [x] Add a confirmed protected reset-current-challenge procedure separate from permanent delete-all behavior.
+- [x] Add automated test coverage for weekly-performance and date/current-day calculation helpers.
+- [x] Add a friendly initial-load error state and explicit goal/streak milestone feedback.
+- [x] Verify the authenticated dashboard and DailyEditor render after the repair; mutation flows were intentionally not re-run against the user’s private progress data.
+- [x] Complete a documented accessibility pass for keyboard focus, labels, status feedback, calendar day selection, mobile navigation, and destructive settings actions.
+- [x] Fix the DailyEditor maximum-update-depth render loop caused by unstable state synchronization dependencies.
+- [x] Add regression coverage and verify the authenticated dashboard no longer throws a render-loop error.

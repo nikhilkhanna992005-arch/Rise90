@@ -1,0 +1,39 @@
+import { useAuth } from "@/_core/hooks/useAuth";
+import { ProgressChart } from "@/components/ProgressChart";
+import { ProgressRing } from "@/components/ProgressRing";
+import { TrackerFrame } from "@/components/TrackerFrame";
+import { goalStats, loadGoals } from "@/lib/goalStorage";
+import { trackerView } from "@/lib/tracker";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ArrowDownRight, ArrowUpRight, BarChart3, Lightbulb, Target, TrendingUp } from "lucide-react";
+import type { TrackerState } from "@/lib/tracker";
+
+export default function Analytics() {
+  return <TrackerFrame>{state => <AnalyticsContent state={state} />}</TrackerFrame>;
+}
+
+function AnalyticsContent({ state }: { state: TrackerState }) {
+  const { user } = useAuth();
+  const view = trackerView(state)!;
+  const goals = (state.goals ?? []).filter(goal => !goal.isArchived);
+
+  // Compute goal consistency from database goalProgress records
+  const goalPerformance = goals.map(goal => {
+    const progList = (state.goalProgress ?? []).filter(p => p.goalId === goal.id);
+    const completedCount = progList.filter(p => p.completed).length;
+    const consistency = view.analytics.elapsedDays ? Math.min(100, Math.round((completedCount / view.analytics.elapsedDays) * 100)) : 0;
+    return { ...goal, consistency };
+  });
+
+  const difficulty = ["easy", "medium", "hard"].map(level => ({ level, count: state.problems.filter(problem => problem.completed && problem.difficulty === level).length }));
+  const weekly = view.weeks.map((week, index, all) => ({ ...week, change: index > 0 ? week.points - all[index - 1].points : 0 }));
+  const strongestGoal = [...goalPerformance].sort((a, b) => b.consistency - a.consistency)[0];
+  const weakestGoal = [...goalPerformance].sort((a, b) => a.consistency - b.consistency)[0];
+  const hasHistory = view.analytics.elapsedDays >= 3;
+
+  return <div className="mx-auto max-w-[1400px] p-5 sm:p-7 lg:p-8"><header><p className="eyebrow text-[#d9ff3e]">Patterns, not pressure</p><h1 className="mt-2 font-display text-3xl font-bold text-white sm:text-4xl">Analytics</h1><p className="mt-2 text-sm text-white/45">Use the signal to decide what deserves your attention next.</p></header><div className="mt-7 grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]"><div className="surface p-6"><ProgressRing value={view.analytics.performancePercent} label="Performance" size={180} /><div className="mt-7 space-y-3 border-t border-white/[.07] pt-5 text-sm"><Metric label="Successful days" value={String(view.analytics.successfulDays)} /><Metric label="Partial days" value={String(view.analytics.partialDays)} /><Metric label="Missed days" value={String(view.analytics.missedDays)} /><Metric label="Current streak" value={`${view.analytics.currentStreak} days`} /><Metric label="Best streak" value={`${view.analytics.longestStreak} days`} /></div></div><ProgressChart data={view.series} /></div><div className="mt-5 grid gap-5 lg:grid-cols-2"><div className="surface h-[320px] p-5"><p className="eyebrow">Weekly performance</p><h2 className="mt-1 panel-title">Is your trend moving?</h2><ResponsiveContainer width="100%" height="78%"><BarChart data={weekly} margin={{ left: -24, top: 16 }}><CartesianGrid stroke="rgba(255,255,255,.06)" vertical={false} /><XAxis dataKey="week" tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11 }} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: "#161b27", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12 }} /><Bar dataKey="points" fill="#d9ff3e" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div><div className="surface p-5"><div className="flex items-center gap-2"><Lightbulb className="size-4 text-[#d9ff3e]" /><p className="eyebrow">Where you are losing focus</p></div>{!hasHistory ? <div className="grid h-[245px] place-items-center text-center"><div><p className="font-display text-lg font-semibold text-white">Your insights are still warming up.</p><p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-white/40">Complete a few more days to unlock deeper insights based on your actual history.</p></div></div> : <div className="mt-5 space-y-3"><Insight icon={TrendingUp} text={strongestGoal ? `You are most consistent with ${strongestGoal.name} at ${strongestGoal.consistency}%.` : "Your strongest pattern will appear as you log more goals."} positive /><Insight icon={Target} text={weakestGoal && weakestGoal.consistency < 70 ? `${weakestGoal.name} needs a smaller, more repeatable next step.` : "Your goals are holding steady. Keep the system simple."} /><Insight icon={BarChart3} text={view.analytics.currentStreak ? `Your current ${view.analytics.currentStreak}-day streak is your clearest lever right now.` : "Start with one completed goal today to rebuild momentum."} /></div>}</div></div><div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]"><div className="surface p-5"><div className="flex items-center justify-between"><div><p className="eyebrow">Goal performance</p><h2 className="mt-1 panel-title">Your consistency by goal</h2></div><Target className="size-4 text-white/35" /></div><div className="mt-5 space-y-4">{goalPerformance.map(goal => { const percent = goal.consistency; return <div key={goal.id}><div className="flex justify-between text-sm"><span className="text-white/70">{goal.name}</span><span className="text-[#d9ff3e]">{percent}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[.07]"><div className="h-full rounded-full bg-[#d9ff3e]" style={{ width: `${percent}%` }} /></div></div>; })}{!goalPerformance.length && <p className="text-sm text-white/40">Create a goal to see goal-level performance.</p>}</div></div><div className="surface h-[300px] p-5"><p className="eyebrow">LeetCode history</p><h2 className="mt-1 panel-title">Solved by difficulty</h2><ResponsiveContainer width="100%" height="78%"><BarChart data={difficulty} margin={{ left: -24, top: 16 }}><CartesianGrid stroke="rgba(255,255,255,.06)" vertical={false} /><XAxis dataKey="level" tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: "rgba(255,255,255,.4)", fontSize: 11 }} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: "#161b27", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12 }} /><Bar dataKey="count" fill="#8291ff" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div></div><div className="mt-5 grid gap-4 sm:grid-cols-3"><MetricCard label="Web development" value={view.analytics.webDevDays} suffix="days completed" /><MetricCard label="LeetCode" value={view.analytics.totalLeetcode} suffix="problems solved" /><MetricCard label="Fitness" value={view.analytics.gymDays} suffix="workouts logged" /></div></div>;
+}
+
+function Metric({ label, value }: { label: string; value: string }) { return <div className="flex justify-between"><span className="text-white/45">{label}</span><b className="text-white">{value}</b></div>; }
+function MetricCard({ label, value, suffix }: { label: string; value: number; suffix: string }) { return <div className="surface p-5"><p className="eyebrow">{label}</p><p className="mt-3 font-display text-3xl font-bold text-white">{value}</p><p className="mt-1 text-xs text-white/40">{suffix}</p></div>; }
+function Insight({ icon: Icon, text, positive = false }: { icon: typeof TrendingUp; text: string; positive?: boolean }) { return <div className="flex gap-3 rounded-2xl border border-white/[.06] bg-white/[.025] p-3"><Icon className={`mt-0.5 size-4 shrink-0 ${positive ? "text-[#d9ff3e]" : "text-[#ffb38e]"}`} /><p className="text-sm leading-6 text-white/55">{text}</p>{positive ? <ArrowUpRight className="size-3 text-[#d9ff3e]" /> : <ArrowDownRight className="size-3 text-[#ffb38e]" />}</div>; }
